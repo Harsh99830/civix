@@ -24,56 +24,91 @@ const mockNearby = [
 
 function BottomSheet({ items }) {
   const sheetRef = useRef(null)
+  const handleRef = useRef(null)
   const startY = useRef(0)
-  const currentY = useRef(0)
+  const dragStartOffset = useRef(0)
+  const currentOffset = useRef(0)
+  const closedOffset = useRef(0)
   const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
     const el = sheetRef.current
-    if (!el) return
+    const handle = handleRef.current
+    if (!el || !handle) return
 
-    const onTouchStart = (e) => {
-      startY.current = e.touches ? e.touches[0].clientY : e.clientY
-      el.style.transition = 'none'
+    // compute closed offset in pixels (how far down when closed)
+    const computeClosedOffset = () => {
+      const rect = el.getBoundingClientRect()
+      const peek = 72 // matches CSS peek height
+      const off = Math.max(0, rect.height - peek)
+      closedOffset.current = off
     }
+    computeClosedOffset()
 
-    const onTouchMove = (e) => {
-      const y = e.touches ? e.touches[0].clientY : e.clientY
-      const dy = y - startY.current
-      currentY.current = dy
-      // only drag upwards when open/closed appropriately
-      if (!isOpen && dy < 0) return
-      if (isOpen && dy > 0 && dy > window.innerHeight * 0.6) return
-      el.style.transform = `translateY(${Math.max(0, -dy)}px)`
-    }
-
-    const onTouchEnd = () => {
-      el.style.transition = ''
-      // simple threshold
-      if (-currentY.current > 80) {
-        setIsOpen(true)
-      } else if (currentY.current > 120) {
-        setIsOpen(false)
-      }
+    const onResize = () => {
+      computeClosedOffset()
+      // ensure transform cleared so class-based state applies after resize
       el.style.transform = ''
-      currentY.current = 0
     }
 
-    el.addEventListener('touchstart', onTouchStart)
-    el.addEventListener('touchmove', onTouchMove)
-    el.addEventListener('touchend', onTouchEnd)
-    // mouse support
-    el.addEventListener('mousedown', onTouchStart)
-    window.addEventListener('mousemove', onTouchMove)
-    window.addEventListener('mouseup', onTouchEnd)
+    const onStart = (e) => {
+      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+      startY.current = clientY
+      dragStartOffset.current = isOpen ? 0 : closedOffset.current
+      currentOffset.current = dragStartOffset.current
+      el.style.transition = 'none'
+      // prevent text selection while dragging with mouse
+      document.body.style.userSelect = 'none'
+    }
+
+    const onMove = (e) => {
+      if (startY.current === 0) return
+      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+      const dy = clientY - startY.current // down is +, up is -
+      // offset increases when dragging down, decreases when dragging up
+      const next = Math.min(
+        closedOffset.current,
+        Math.max(0, dragStartOffset.current + dy)
+      )
+      currentOffset.current = next
+      el.style.transform = `translateY(${next}px)`
+    }
+
+    const onEnd = () => {
+      // decide open/close based on how far we are from open (0) vs closed
+      const threshold = closedOffset.current * 0.35 // 35% to open
+      if (currentOffset.current <= threshold) {
+        setIsOpen(true)
+      } else if (currentOffset.current >= closedOffset.current * 0.65) {
+        setIsOpen(false)
+      } else {
+        // snap to nearest state
+        setIsOpen(currentOffset.current < closedOffset.current / 2)
+      }
+      // restore transition and clear inline transform so class can animate
+      el.style.transition = ''
+      el.style.transform = ''
+      startY.current = 0
+      document.body.style.userSelect = ''
+    }
+
+    // attach only to handle for start, global for move/end
+    handle.addEventListener('touchstart', onStart, { passive: true })
+    window.addEventListener('touchmove', onMove, { passive: true })
+    window.addEventListener('touchend', onEnd)
+    handle.addEventListener('mousedown', onStart)
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onEnd)
+    window.addEventListener('resize', onResize)
 
     return () => {
-      el.removeEventListener('touchstart', onTouchStart)
-      el.removeEventListener('touchmove', onTouchMove)
-      el.removeEventListener('touchend', onTouchEnd)
-      el.removeEventListener('mousedown', onTouchStart)
-      window.removeEventListener('mousemove', onTouchMove)
-      window.removeEventListener('mouseup', onTouchEnd)
+      handle.removeEventListener('touchstart', onStart)
+      window.removeEventListener('touchmove', onMove)
+      window.removeEventListener('touchend', onEnd)
+      handle.removeEventListener('mousedown', onStart)
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onEnd)
+      window.removeEventListener('resize', onResize)
     }
   }, [isOpen])
 
@@ -81,7 +116,7 @@ function BottomSheet({ items }) {
     <div
       ref={sheetRef}
       className={`bottom-sheet ${isOpen ? 'open' : 'closed'}`}>
-      <div className="sheet-handle" onClick={() => setIsOpen(!isOpen)}>
+      <div className="sheet-handle" ref={handleRef}>
         <div className="handle-bar" />
         <span className="handle-label">Nearby</span>
       </div>

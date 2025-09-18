@@ -213,7 +213,14 @@
   border-top-left-radius: 12px;
   border-top-right-radius: 12px;
   box-shadow: 0 -6px 18px rgba(2,6,23,0.08);
-  cursor: pointer;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.sheet-handle:active {
+  cursor: grabbing;
 }
 
 .handle-bar {
