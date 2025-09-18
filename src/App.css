@@ -187,7 +187,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 60;
+  z-index: 10000; /* above Leaflet controls and panes */
   display: flex;
   flex-direction: column;
   transform: translateY(0);
@@ -270,11 +270,18 @@
 
 /* On larger screens show as a right-side panel */
 @media (min-width: 900px) {
+  /* Make the map occupy the full viewport height on desktop */
+  .map-wrap,
+  .map-wrap.tall {
+    height: 100vh;
+    border-radius: 0;
+  }
+
   .bottom-sheet {
     left: auto;
     right: 1.5rem;
     bottom: 1.5rem;
-    width: 360px;
+    width: 400px;
     border-radius: 12px;
     transform: translateY(0) !important;
   }
@@ -284,4 +291,17 @@
   }
 
   .sheet-handle { display: none; }
+
+  .sheet-content {
+    /* make the side panel taller and more usable on desktop */
+    max-height: min(75vh, 720px);
+    overflow: auto;
+  }
+}
+
+/* Extra-large screens: make the panel a bit wider */
+@media (min-width: 1280px) {
+  .bottom-sheet {
+    width: 480px;
+  }
 }
