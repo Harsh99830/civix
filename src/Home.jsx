@@ -1,6 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
 import './App.css'
 
 const mockNearby = [
@@ -150,31 +148,50 @@ function BottomSheet({ items }) {
 
 function MapView() {
   const mapEl = useRef(null)
-  const mapRef = useRef(null)
 
   useEffect(() => {
-    if (mapRef.current || !mapEl.current) return
-    const center = [-37.81732797975178, 144.9556513153163]
-    const map = L.map(mapEl.current, {
-      center,
-      zoom: 13,
-      zoomControl: true,
-      dragging: true,
-      touchZoom: true,
-      tap: false // helps with React pointer events on some devices
+    let scriptEl
+
+    const init = () => {
+      if (!window.google || !window.google.maps || !mapEl.current) return
+      const center = { lat: -37.81732797975178, lng: 144.9556513153163 }
+      const map = new window.google.maps.Map(mapEl.current, {
+        center,
+        zoom: 13,
+        gestureHandling: 'greedy',
+        disableDefaultUI: false,
+      })
+      // Example marker (optional)
+      // new window.google.maps.Marker({ position: center, map })
+    }
+
+    const ensureScript = () => new Promise((resolve, reject) => {
+      if (window.google && window.google.maps) {
+        resolve()
+        return
+      }
+      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+      if (!apiKey) {
+        console.warn('VITE_GOOGLE_MAPS_API_KEY is not set. Please add it to your .env file.')
+      }
+      const src = `https://maps.googleapis.com/maps/api/js?key=${apiKey || ''}&v=weekly`
+      scriptEl = document.createElement('script')
+      scriptEl.src = src
+      scriptEl.async = true
+      scriptEl.defer = true
+      scriptEl.onload = () => resolve()
+      scriptEl.onerror = (e) => reject(e)
+      document.head.appendChild(scriptEl)
     })
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map)
-
-    mapRef.current = map
+    ensureScript().then(init).catch((e) => {
+      console.error('Failed to load Google Maps JS API', e)
+    })
 
     return () => {
-      if (mapRef.current) {
-        mapRef.current.remove()
-        mapRef.current = null
+      // no explicit cleanup necessary for the script tag or map div here
+      if (scriptEl && scriptEl.parentNode) {
+        // leave the script in place to avoid reloading between navigations
       }
     }
   }, [])
