@@ -25,7 +25,7 @@ function Navbar() {
               </svg>
             </button>
             <div className="flex items-center gap-3">
-              <span className="text-3xl font-bold text-gray-900 tracking-tight leading-none">civix</span>
+              <span className="text-3xl font-semibold text-gray-900 tracking-tight leading-none">civix</span>
             </div>
           </div>
           <div className="flex items-center">
