@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 
 
 @keyframes logo-spin {
@@ -304,4 +306,19 @@
   .bottom-sheet {
     width: 480px;
   }
+}
+
+/* Force-hide any residual Google Maps camera/compass/pegman controls if they appear */
+.map-iframe button[aria-label="Tilt map"],
+.map-iframe button[aria-label="Rotate map"],
+.map-iframe button[aria-label="Tilt the map"],
+.map-iframe button[aria-label="Rotate the map"],
+.map-iframe .gm-compass,
+.map-iframe .gm-tilt,
+.map-iframe .gm-rotate,
+.map-iframe .gm-svpc,
+.map-iframe button[aria-label="Street View"],
+.map-iframe button[aria-label="Open Street View"],
+.map-iframe button[aria-label="Toggle fullscreen view"] {
+  display: none !important;
 }
