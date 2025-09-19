@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import myLocationIcon from '../assets/my_location.png';
 
 function LocationButton({ map, bottomSheetOpen, dragData = { progress: 1, offset: 0, closedOffset: 0 } }) {
   const [isTracking, setIsTracking] = useState(false);
@@ -204,17 +205,13 @@ function LocationButton({ map, bottomSheetOpen, dragData = { progress: 1, offset
       title="Live location"
       aria-label="Toggle live location"
     >
-      {isTracking ? (
-        <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-          <circle cx="12" cy="12" r="8" fill="#1A73E8" />
-          <circle cx="12" cy="12" r="3" fill="#FFFFFF" />
-        </svg>
-      ) : (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 4C14.2 4 16 5.8 16 8C16 10.1 14.1 13 12 15C9.9 13 8 10.1 8 8C8 5.8 9.8 4 12 4ZM12 2C8.7 2 6 4.7 6 8C6 11.3 10 16.7 12 19.3C14 16.6 18 11.4 18 8C18 4.7 15.3 2 12 2Z" fill="#9aa0a6"/>
-          <circle cx="12" cy="12" r="3" fill="#9aa0a6" />
-        </svg>
-      )}
+      <img 
+        src={myLocationIcon} 
+        alt="My Location" 
+        width="25" 
+        height="25"
+        className={`transition-opacity duration-200 ${isTracking ? 'opacity-100' : 'opacity-70'}`}
+      />
     </button>
   );
 }
