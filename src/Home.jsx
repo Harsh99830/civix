@@ -1,6 +1,7 @@
 import React,{ useEffect, useRef, useState } from 'react'
 import './App.css'
 import Navbar from './components/Navbar'
+import LocationButton from './components/LocationButton'
 
 const mockNearby = [
   {
@@ -23,7 +24,7 @@ const mockNearby = [
   }
 ]
 
-function BottomSheet({ items }) {
+function BottomSheet({ items, onStateChange, onDragPosition }) {
   const sheetRef = useRef(null)
   const handleRef = useRef(null)
   const startY = useRef(0)
@@ -78,6 +79,12 @@ function BottomSheet({ items }) {
       )
       currentOffset.current = next
       el.style.transform = `translateY(${next}px)`
+      
+      // Notify parent of current drag position for button positioning
+      if (onDragPosition) {
+        const dragProgress = next / closedOffset.current // 0 = fully open, 1 = fully closed
+        onDragPosition({ progress: dragProgress, offset: next, closedOffset: closedOffset.current })
+      }
     }
 
     const onEnd = (e) => {
@@ -88,13 +95,21 @@ function BottomSheet({ items }) {
       
       // decide open/close based on how far we are from open (0) vs closed
       const threshold = closedOffset.current * 0.35 // 35% to open
+      let newIsOpen
       if (currentOffset.current <= threshold) {
-        setIsOpen(true)
+        newIsOpen = true
       } else if (currentOffset.current >= closedOffset.current * 0.65) {
-        setIsOpen(false)
+        newIsOpen = false
       } else {
         // snap to nearest state
-        setIsOpen(currentOffset.current < closedOffset.current / 2)
+        newIsOpen = currentOffset.current < closedOffset.current / 2
+      }
+      setIsOpen(newIsOpen)
+      if (onStateChange) onStateChange(newIsOpen)
+      // Update drag position when transitioning to final state
+      if (onDragPosition) {
+        const finalOffset = newIsOpen ? 0 : closedOffset.current
+        onDragPosition({ progress: newIsOpen ? 0 : 1, offset: finalOffset, closedOffset: closedOffset.current })
       }
       // restore transition and clear inline transform so class can animate
       el.style.transition = ''
@@ -152,7 +167,7 @@ function BottomSheet({ items }) {
   )
 }
 
-function MapView() {
+function MapView({ onMapReady }) {
   const mapEl = useRef(null)
 
   useEffect(() => {
@@ -178,6 +193,9 @@ function MapView() {
         mapTypeControl: false,
         keyboardShortcuts: false,
       })
+      
+      // Notify parent component that map is ready
+      if (onMapReady) onMapReady(map)
       
       // Ensure container can host overlay elements
       try {
@@ -284,197 +302,7 @@ function MapView() {
       // Example marker (optional)
       // new window.google.maps.Marker({ position: center, map })
 
-      // Add a custom Live Location control on the right side
-      const controlDiv = document.createElement('div')
-      controlDiv.style.margin = '10px'
 
-      const button = document.createElement('button')
-      button.type = 'button'
-      button.title = 'Live location'
-      button.style.background = '#ffffff'
-      button.style.backgroundColor = '#ffffff'
-      button.style.border = 'none'
-      button.style.borderRadius = '50%'
-      button.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)'
-      button.style.cursor = 'pointer'
-      button.style.padding = '8px'
-      button.style.width = '40px'
-      button.style.height = '40px'
-      button.style.display = 'flex'
-      button.style.alignItems = 'center'
-      button.style.justifyContent = 'center'
-      button.style.margin = '10px'
-      button.style.outline = 'none'
-
-      // Google Maps-style current location icon: blue circle with white dot
-      const icon = document.createElement('span')
-      icon.innerHTML = `
-        <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-          <circle cx="12" cy="12" r="8" fill="#1A73E8" />
-          <circle cx="12" cy="12" r="3" fill="#FFFFFF" />
-        </svg>
-      `
-
-      button.appendChild(icon)
-      controlDiv.appendChild(button)
-
-      // Keep references for real-time tracking
-      let userMarker = null
-      let accuracyCircle = null
-      let watchId = null
-      let isTracking = false
-      let firstFix = true
-
-      const setButtonActive = (active) => {
-        // Active: blue icon; Inactive: grey spinner icon
-        icon.innerHTML = active
-          ? `
-            <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-              <circle cx="12" cy="12" r="8" fill="#1A73E8" />
-              <circle cx="12" cy="12" r="3" fill="#FFFFFF" />
-            </svg>
-          `
-          : `
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 4C14.2 4 16 5.8 16 8C16 10.1 14.1 13 12 15C9.9 13 8 10.1 8 8C8 5.8 9.8 4 12 4ZM12 2C8.7 2 6 4.7 6 8C6 11.3 10 16.7 12 19.3C14 16.6 18 11.4 18 8C18 4.7 15.3 2 12 2Z" fill="#9aa0a6"/>
-              <circle cx="12" cy="12" r="3" fill="#9aa0a6" />
-            </svg>
-          `
-      }
-
-      const resetButton = () => {
-        setButtonActive(false)
-        button.disabled = false
-      }
-
-      const updateAccuracyCircle = (loc, accuracy) => {
-        if (!window.google || !window.google.maps) return
-        if (!accuracyCircle) {
-          accuracyCircle = new window.google.maps.Circle({
-            strokeColor: '#1A73E8',
-            strokeOpacity: 0.5,
-            strokeWeight: 1,
-            fillColor: '#1A73E8',
-            fillOpacity: 0.15,
-            map,
-            center: loc,
-            radius: accuracy || 30,
-          })
-        } else {
-          accuracyCircle.setCenter(loc)
-          if (typeof accuracy === 'number') accuracyCircle.setRadius(accuracy)
-        }
-      }
-
-      const startTracking = () => {
-        if (!('geolocation' in navigator)) {
-          console.warn('Geolocation is not supported by this browser.')
-          resetButton()
-          return
-        }
-        button.disabled = true
-        showLoading()
-        firstFix = true
-        setButtonActive(false)
-        const options = {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0,
-        }
-        try {
-          watchId = navigator.geolocation.watchPosition(
-            (position) => {
-              const loc = {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude,
-              }
-              const accuracy = position.coords.accuracy
-
-              // Blue dot style icon (Google-like)
-              const userIcon = {
-                path: window.google.maps.SymbolPath.CIRCLE,
-                scale: 8,
-                fillColor: '#1A73E8',
-                fillOpacity: 1,
-                strokeColor: '#FFFFFF',
-                strokeWeight: 2,
-              }
-
-              if (userMarker) {
-                userMarker.setPosition(loc)
-                if (typeof userMarker.setIcon === 'function') userMarker.setIcon(userIcon)
-              } else {
-                userMarker = new window.google.maps.Marker({
-                  position: loc,
-                  map,
-                  title: 'Your location',
-                  icon: userIcon,
-                  clickable: false,
-                  optimized: true,
-                  zIndex: 9999,
-                })
-              }
-              updateAccuracyCircle(loc, accuracy)
-
-              if (firstFix) {
-                hideLoading()
-                button.disabled = false
-                setButtonActive(true)
-                // Zoom in to a closer level on first fix
-                map.panTo(loc)
-                map.setZoom(Math.max(map.getZoom() || 13, 16))
-                firstFix = false
-              } else {
-                // Follow the user in real-time
-                map.panTo(loc)
-              }
-
-              isTracking = true
-            },
-            (error) => {
-              console.warn('watchPosition error:', error)
-              hideLoading()
-              button.disabled = false
-              setButtonActive(false)
-              // auto stop tracking on error
-              stopTracking()
-            },
-            options
-          )
-        } catch (e) {
-          console.warn('Failed to start watchPosition', e)
-          hideLoading()
-          button.disabled = false
-          setButtonActive(false)
-        }
-      }
-
-      const stopTracking = () => {
-        if (watchId != null && navigator.geolocation && navigator.geolocation.clearWatch) {
-          navigator.geolocation.clearWatch(watchId)
-          watchId = null
-        }
-        isTracking = false
-        setButtonActive(false)
-      }
-
-      // Add click event listener with proper event handling
-      const handleLocationClick = (e) => {
-        e.stopPropagation()
-        if (isTracking) {
-          stopTracking()
-        } else {
-          startTracking()
-        }
-      }
-      
-      // Add both click and touchstart events for better mobile support
-      button.addEventListener('click', handleLocationClick)
-      button.addEventListener('touchstart', handleLocationClick, { passive: true })
-      map.controls[window.google.maps.ControlPosition.RIGHT_BOTTOM].push(controlDiv)
-
-      // Auto-start real-time location tracking on first load
-      startTracking()
     }
 
     const ensureScript = () => new Promise((resolve, reject) => {
@@ -513,13 +341,28 @@ function MapView() {
 
 export default function Home() {
   const [nearby] = useState(mockNearby)
+  const [map, setMap] = useState(null)
+  const [bottomSheetOpen, setBottomSheetOpen] = useState(false)
+  const [dragData, setDragData] = useState({ progress: 1, offset: 0, closedOffset: 0 })
+
+  const handleMapReady = (mapInstance) => {
+    setMap(mapInstance)
+  }
+
+  const handleBottomSheetStateChange = (isOpen) => {
+    setBottomSheetOpen(isOpen)
+  }
+
+  const handleDragPosition = (data) => {
+    setDragData(data)
+  }
 
   return (
     <div className="app-root min-h-screen bg-gray-50">
       <Navbar />
       <header className="map-header pt-16">
         <div className="map-wrap tall">
-          <MapView />
+          <MapView onMapReady={handleMapReady} />
         </div>
       </header>
 
@@ -527,7 +370,19 @@ export default function Home() {
         
       </main>
 
-      <BottomSheet items={nearby} />
+      <BottomSheet 
+        items={nearby} 
+        onStateChange={handleBottomSheetStateChange}
+        onDragPosition={handleDragPosition}
+      />
+      
+      {map && (
+        <LocationButton 
+          map={map} 
+          bottomSheetOpen={bottomSheetOpen}
+          dragData={dragData}
+        />
+      )}
     </div>
   )
 }

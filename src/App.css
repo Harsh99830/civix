@@ -318,3 +318,34 @@
 .map-iframe button[aria-label="Toggle fullscreen view"] {
   display: none !important;
 }
+
+/* Floating location button styles */
+.location-button {
+  position: fixed;
+  right: 1rem;
+  z-index: 10001; /* Above bottom sheet */
+  transition: bottom 300ms cubic-bezier(.22,.9,.35,1);
+  background: white;
+  border: none;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+}
+
+.location-button:hover {
+  background: #f8f9fa;
+}
+
+/* Adjust position for desktop sidebar */
+@media (min-width: 900px) {
+  .location-button {
+    right: 26rem; /* Account for sidebar width + margin */
+    bottom: 2rem !important; /* Fixed position on desktop */
+  }
+}
