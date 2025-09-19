@@ -1,5 +1,6 @@
 /* Minimal base styles that don't conflict with Tailwind */
-@import "tailwindcss";
+@import "tailwindcss/theme" theme(reference);
+@import "tailwindcss/utilities";
 :root {
   font-synthesis: none;
   text-rendering: optimizeLegibility;
