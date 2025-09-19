@@ -1,5 +1,5 @@
-@import "tailwindcss/theme" theme(reference);
-@import "tailwindcss/utilities";
+
+@import "tailwindcss";
 
 
 
@@ -28,11 +28,6 @@
 
 /* App specific styles - mobile first */
 /* Reset default margins and padding */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
 
 .app-root {
   font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
