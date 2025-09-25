@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import myLocationIcon from '../assets/my_location.png';
+import UserLocationRange from './UserLocationRange';
 
 function LocationButton({ map, bottomSheetOpen, dragData = { progress: 1, offset: 0, closedOffset: 0 } }) {
+  const [userLocation, setUserLocation] = useState(null);
   const [isTracking, setIsTracking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const userMarkerRef = useRef(null);
@@ -55,6 +57,7 @@ function LocationButton({ map, bottomSheetOpen, dragData = { progress: 1, offset
             lat: position.coords.latitude,
             lng: position.coords.longitude,
           };
+          setUserLocation(loc);
           const accuracy = position.coords.accuracy;
 
           // Blue dot style icon (Google-like)
@@ -198,13 +201,15 @@ function LocationButton({ map, bottomSheetOpen, dragData = { progress: 1, offset
   }
 
   return (
-    <button
-      onClick={handleLocationClick}
-      className="fixed z-[10001] bg-white hover:bg-gray-50 border-none rounded-full shadow-lg cursor-pointer w-12 h-12 flex items-center justify-center outline-none"
-      style={buttonStyle}
-      title="Live location"
-      aria-label="Toggle live location"
-    >
+    <>
+      {map && <UserLocationRange map={map} userLocation={userLocation} />}
+      <button
+        onClick={handleLocationClick}
+        className="fixed z-[10001] bg-white hover:bg-gray-50 border-none rounded-full shadow-lg cursor-pointer w-12 h-12 flex items-center justify-center outline-none"
+        style={buttonStyle}
+        title="Live location"
+        aria-label="Toggle live location"
+      >
       <img 
         src={myLocationIcon} 
         alt="My Location" 
@@ -212,7 +217,8 @@ function LocationButton({ map, bottomSheetOpen, dragData = { progress: 1, offset
         height="25"
         className={`transition-opacity duration-200 ${isTracking ? 'opacity-100' : 'opacity-70'}`}
       />
-    </button>
+      </button>
+    </>
   );
 }
 
