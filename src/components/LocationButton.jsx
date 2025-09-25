@@ -34,133 +34,121 @@ function LocationButton({ map, bottomSheetOpen, dragData = { progress: 1, offset
     }
   };
 
-  const startTracking = () => {
+  const getCurrentLocation = () => {
     if (!('geolocation' in navigator)) {
       console.warn('Geolocation is not supported by this browser.');
       return;
     }
 
     setIsLoading(true);
-    firstFixRef.current = true;
-    setButtonActive(false);
-
+    
     const options = {
       enableHighAccuracy: true,
-      timeout: 15000,
-      maximumAge: 0,
+      timeout: 10000, // 10 seconds timeout
+      maximumAge: 0,  // Force a fresh location
     };
 
-    try {
-      watchIdRef.current = navigator.geolocation.watchPosition(
-        (position) => {
-          const loc = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          };
-          setUserLocation(loc);
-          const accuracy = position.coords.accuracy;
+    // Use getCurrentPosition instead of watchPosition for one-time location
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const loc = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        
+        setUserLocation(loc);
+        const accuracy = position.coords.accuracy;
 
-          // Blue dot style icon (Google-like)
-          const userIcon = {
-            path: window.google.maps.SymbolPath.CIRCLE,
-            scale: 8,
-            fillColor: '#1A73E8',
-            fillOpacity: 1,
-            strokeColor: '#FFFFFF',
-            strokeWeight: 2,
-          };
+        // Blue dot style icon (Google-like)
+        const userIcon = {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 8,
+          fillColor: '#1A73E8',
+          fillOpacity: 1,
+          strokeColor: '#FFFFFF',
+          strokeWeight: 2,
+        };
 
-          if (userMarkerRef.current) {
-            userMarkerRef.current.setPosition(loc);
-            if (typeof userMarkerRef.current.setIcon === 'function') userMarkerRef.current.setIcon(userIcon);
-          } else {
-            userMarkerRef.current = new window.google.maps.Marker({
-              position: loc,
-              map,
-              title: 'Your location',
-              icon: userIcon,
-              clickable: false,
-              optimized: true,
-              zIndex: 9999,
-            });
-          }
-          updateAccuracyCircle(loc, accuracy);
+        // Remove previous marker if exists
+        if (userMarkerRef.current) {
+          userMarkerRef.current.setMap(null);
+        }
+        
+        if (accuracyCircleRef.current) {
+          accuracyCircleRef.current.setMap(null);
+        }
 
-          setIsLoading(false);
-          setButtonActive(true);
-          
-          // Check if user has manually interacted with the map
-          const hasUserInteracted = map.get('userInteracted');
-          const isInteracting = map.get('isInteracting');
-          
-          if (firstFixRef.current) {
-            // On first fix, only center if user hasn't interacted yet
-            if (!hasUserInteracted && !isInteracting) {
-              map.panTo(loc);
-              map.setZoom(Math.max(map.getZoom() || 13, 16));
-            }
-            firstFixRef.current = false;
-          } else if (isTracking && !isInteracting) {
-            // For subsequent updates, only update if tracking is active and user isn't interacting
-            // But only update the marker position, not the map center
-            if (userMarkerRef.current) {
-              userMarkerRef.current.setPosition(loc);
-            }
-            if (accuracyCircleRef.current) {
-              accuracyCircleRef.current.setCenter(loc);
-              if (typeof accuracy === 'number') {
-                accuracyCircleRef.current.setRadius(accuracy);
-              }
-            }
-          }
-        },
-        (error) => {
-          console.warn('watchPosition error:', error);
-          setIsLoading(false);
-          setButtonActive(false);
-          stopTracking();
-        },
-        options
-      );
-    } catch (e) {
-      console.warn('Failed to start watchPosition', e);
-      setIsLoading(false);
-      setButtonActive(false);
-    }
+        // Create new marker
+        userMarkerRef.current = new window.google.maps.Marker({
+          position: loc,
+          map,
+          title: 'Your location',
+          icon: userIcon,
+          clickable: false,
+          optimized: true,
+          zIndex: 9999,
+        });
+        
+        updateAccuracyCircle(loc, accuracy);
+        
+        // Center the map on the new location
+        map.panTo(loc);
+        map.setZoom(Math.max(map.getZoom() || 13, 16));
+        
+        setIsLoading(false);
+        setButtonActive(true);
+      },
+      (error) => {
+        console.warn('getCurrentPosition error:', error);
+        setIsLoading(false);
+        setButtonActive(false);
+      },
+      options
+    );
   };
 
-  const stopTracking = () => {
-    if (watchIdRef.current != null && navigator.geolocation && navigator.geolocation.clearWatch) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
+  const clearLocation = () => {
+    if (userMarkerRef.current) {
+      userMarkerRef.current.setMap(null);
+      userMarkerRef.current = null;
     }
+    if (accuracyCircleRef.current) {
+      accuracyCircleRef.current.setMap(null);
+      accuracyCircleRef.current = null;
+    }
+    setUserLocation(null);
     setIsTracking(false);
   };
 
   const handleLocationClick = (e) => {
     e.stopPropagation();
     if (isTracking) {
-      stopTracking();
+      clearLocation();
     } else {
-      startTracking();
+      getCurrentLocation();
     }
   };
 
-  // Auto-start tracking when map is available
+  // Automatically get current location on first mount
   useEffect(() => {
-    if (map && !isTracking && !isLoading) {
-      startTracking();
+    if (map) {
+      // Small delay to ensure map is fully loaded
+      const timer = setTimeout(() => {
+        getCurrentLocation();
+      }, 1000);
+      
+      return () => {
+        clearTimeout(timer);
+        // Cleanup markers on unmount
+        if (userMarkerRef.current) {
+          userMarkerRef.current.setMap(null);
+        }
+        if (accuracyCircleRef.current) {
+          accuracyCircleRef.current.setMap(null);
+        }
+      };
     }
   }, [map]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (watchIdRef.current != null && navigator.geolocation && navigator.geolocation.clearWatch) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-      }
-    };
-  }, []);
 
   // Calculate button position based on actual bottom sheet position
   const getButtonPosition = () => {
