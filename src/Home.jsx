@@ -267,32 +267,49 @@ function MapView({ onMapReady }) {
       
       // Set initial interaction state
       map.set('isInteracting', false);
+      map.set('userInteracted', false);
       
-      const onInteractionStart = () => {
+      const onInteractionStart = (e) => {
+        if (e && e.stopPropagation) e.stopPropagation();
         isMapInteracting = true;
         map.set('isInteracting', true);
-      }
+        // Mark that user has manually interacted with the map
+        map.set('userInteracted', true);
+      };
       
       const onInteractionEnd = (e) => {
-        // Prevent touch end from bubbling to parent elements
-        if (isMapInteracting) {
-          if (e && e.stopPropagation) e.stopPropagation();
-          isMapInteracting = false;
-          // Use a small delay to ensure we don't interfere with click events
-          setTimeout(() => {
-            map.set('isInteracting', false);
-          }, 100);
-        }
-      }
+        if (e && e.stopPropagation) e.stopPropagation();
+        isMapInteracting = false;
+        // Clear interaction flag after a short delay
+        setTimeout(() => {
+          map.set('isInteracting', false);
+        }, 500);
+      };
+      
+      const onMapDrag = () => {
+        map.set('userInteracted', true);
+      };
       
       // Add event listeners for both mouse and touch interactions
-      map.addListener('mousedown', onInteractionStart);
-      map.addListener('mouseup', onInteractionEnd);
-      map.addListener('dragstart', onInteractionStart);
-      map.addListener('dragend', onInteractionEnd);
-      map.addListener('touchstart', onInteractionStart);
-      map.addListener('touchend', onInteractionEnd);
-      map.addListener('click', onInteractionEnd);
+      const events = [
+        'mousedown', 'mouseup', 'mousemove',
+        'touchstart', 'touchend', 'touchmove',
+        'dragstart', 'drag', 'dragend',
+        'click', 'dblclick', 'center_changed',
+        'bounds_changed', 'zoom_changed'
+      ];
+      
+      events.forEach(event => {
+        map.addListener(event, (e) => {
+          if (event === 'drag' || event === 'touchmove') {
+            onMapDrag();
+          } else if (event.endsWith('start') || event === 'mousedown' || event === 'touchstart') {
+            onInteractionStart(e);
+          } else if (event.endsWith('end') || event === 'mouseup' || event === 'touchend' || event === 'click') {
+            onInteractionEnd(e);
+          }
+        });
+      });
       
       // Note: cleanup for these listeners is handled by the component lifecycle if needed.
       // Ensure no compass appears by keeping camera unrotated and untilted

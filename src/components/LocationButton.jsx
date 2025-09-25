@@ -86,21 +86,31 @@ function LocationButton({ map, bottomSheetOpen, dragData = { progress: 1, offset
           }
           updateAccuracyCircle(loc, accuracy);
 
+          setIsLoading(false);
+          setButtonActive(true);
+          
+          // Check if user has manually interacted with the map
+          const hasUserInteracted = map.get('userInteracted');
+          const isInteracting = map.get('isInteracting');
+          
           if (firstFixRef.current) {
-            setIsLoading(false);
-            setButtonActive(true);
-            // Only auto-center on first fix if user isn't interacting
-            const isInteracting = map.get('isInteracting');
-            if (!isInteracting) {
+            // On first fix, only center if user hasn't interacted yet
+            if (!hasUserInteracted && !isInteracting) {
               map.panTo(loc);
               map.setZoom(Math.max(map.getZoom() || 13, 16));
             }
             firstFixRef.current = false;
-          } else {
-            // Don't auto-pan in real-time if user is interacting with the map
-            const isInteracting = map.get('isInteracting');
-            if (!isInteracting) {
-              map.panTo(loc);
+          } else if (isTracking && !isInteracting) {
+            // For subsequent updates, only update if tracking is active and user isn't interacting
+            // But only update the marker position, not the map center
+            if (userMarkerRef.current) {
+              userMarkerRef.current.setPosition(loc);
+            }
+            if (accuracyCircleRef.current) {
+              accuracyCircleRef.current.setCenter(loc);
+              if (typeof accuracy === 'number') {
+                accuracyCircleRef.current.setRadius(accuracy);
+              }
             }
           }
         },
