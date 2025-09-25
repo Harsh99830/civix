@@ -2,7 +2,6 @@ import React,{ useEffect, useRef, useState } from 'react'
 import './App.css'
 import Navbar from './components/Navbar'
 import LocationButton from './components/LocationButton'
-
 const mockNearby = [
   {
     id: 1,
@@ -265,21 +264,35 @@ function MapView({ onMapReady }) {
       
       // Add map interaction listeners
       const mapContainer = mapEl.current
-      const onMapTouchStart = () => {
-        isMapInteracting = true
+      
+      // Set initial interaction state
+      map.set('isInteracting', false);
+      
+      const onInteractionStart = () => {
+        isMapInteracting = true;
+        map.set('isInteracting', true);
       }
       
-      const onMapTouchEnd = (e) => {
+      const onInteractionEnd = (e) => {
         // Prevent touch end from bubbling to parent elements
         if (isMapInteracting) {
-          e.stopPropagation()
-          isMapInteracting = false
+          if (e && e.stopPropagation) e.stopPropagation();
+          isMapInteracting = false;
+          // Use a small delay to ensure we don't interfere with click events
+          setTimeout(() => {
+            map.set('isInteracting', false);
+          }, 100);
         }
       }
       
-      // Use capture phase to ensure we catch the event first
-      mapContainer.addEventListener('touchstart', onMapTouchStart, { passive: true })
-      mapContainer.addEventListener('touchend', onMapTouchEnd, { passive: false })
+      // Add event listeners for both mouse and touch interactions
+      map.addListener('mousedown', onInteractionStart);
+      map.addListener('mouseup', onInteractionEnd);
+      map.addListener('dragstart', onInteractionStart);
+      map.addListener('dragend', onInteractionEnd);
+      map.addListener('touchstart', onInteractionStart);
+      map.addListener('touchend', onInteractionEnd);
+      map.addListener('click', onInteractionEnd);
       
       // Note: cleanup for these listeners is handled by the component lifecycle if needed.
       // Ensure no compass appears by keeping camera unrotated and untilted

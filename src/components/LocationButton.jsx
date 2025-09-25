@@ -39,7 +39,7 @@ function LocationButton({ map, bottomSheetOpen, dragData = { progress: 1, offset
       console.warn('Geolocation is not supported by this browser.');
       return;
     }
-    
+
     setIsLoading(true);
     firstFixRef.current = true;
     setButtonActive(false);
@@ -89,12 +89,20 @@ function LocationButton({ map, bottomSheetOpen, dragData = { progress: 1, offset
           if (firstFixRef.current) {
             setIsLoading(false);
             setButtonActive(true);
-            // Only pan and zoom on first fix
-            map.panTo(loc);
-            map.setZoom(Math.max(map.getZoom() || 13, 16));
+            // Only auto-center on first fix if user isn't interacting
+            const isInteracting = map.get('isInteracting');
+            if (!isInteracting) {
+              map.panTo(loc);
+              map.setZoom(Math.max(map.getZoom() || 13, 16));
+            }
             firstFixRef.current = false;
+          } else {
+            // Don't auto-pan in real-time if user is interacting with the map
+            const isInteracting = map.get('isInteracting');
+            if (!isInteracting) {
+              map.panTo(loc);
+            }
           }
-          // Don't auto-pan during normal tracking - only update marker position
         },
         (error) => {
           console.warn('watchPosition error:', error);
@@ -124,10 +132,6 @@ function LocationButton({ map, bottomSheetOpen, dragData = { progress: 1, offset
     if (isTracking) {
       stopTracking();
     } else {
-      // If we have a location, pan to it when the button is clicked
-      if (userLocation) {
-        map.panTo(userLocation);
-      }
       startTracking();
     }
   };
@@ -154,24 +158,24 @@ function LocationButton({ map, bottomSheetOpen, dragData = { progress: 1, offset
     if (window.innerWidth >= 900) {
       return '2rem'; // Fixed bottom position on desktop
     }
-    
+
     const { offset, closedOffset } = dragData
     const buttonOffset = 16 // Distance above the sheet's top edge
-    
+
     // The bottom sheet is positioned with bottom: 0 and translateY(offset)
     // When offset = 0: sheet is fully open, its top edge is high up
     // When offset = closedOffset: sheet is mostly hidden, only peek (72px) is visible
-    
+
     // The sheet's effective top position from the bottom of the screen is:
     // screenHeight - sheetHeight + offset
     // But since we only care about the relative position, we can simplify:
     // When fully closed: the visible top is at 72px from bottom
     // When fully open: the visible top is at (72 + closedOffset) from bottom
-    
+
     const peekHeight = 72
     const sheetTopFromBottom = peekHeight + (closedOffset - offset)
     const buttonBottom = sheetTopFromBottom + buttonOffset
-    
+
     return `${buttonBottom}px`
   };
 
@@ -212,13 +216,13 @@ function LocationButton({ map, bottomSheetOpen, dragData = { progress: 1, offset
         title="Live location"
         aria-label="Toggle live location"
       >
-      <img 
-        src={myLocationIcon} 
-        alt="My Location" 
-        width="25" 
-        height="25"
-        className={`transition-opacity duration-200 ${isTracking ? 'opacity-100' : 'opacity-70'}`}
-      />
+        <img 
+          src={myLocationIcon} 
+          alt="My Location" 
+          width="25" 
+          height="25"
+          className={`transition-opacity duration-200 ${isTracking ? 'opacity-100' : 'opacity-70'}`}
+        />
       </button>
     </>
   );

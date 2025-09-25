@@ -57,95 +57,9 @@ function UserLocationRange({ map, userLocation }) {
   useEffect(() => {
     if (!map || !window.google?.maps) return;
 
-    // Track touch points to detect multi-touch
-    let touchCount = 0;
-    let touchStartTime = 0;
-    const LONG_PRESS_DURATION = 500; // ms
-    const TOUCH_MOVE_TOLERANCE = 10; // pixels
-    let touchStartCoords = { x: 0, y: 0 };
-
-    const handleTouchStart = (e) => {
-      if (e.touches.length === 1) {
-        // Single touch - start long press timer
-        touchCount = 1;
-        touchStartTime = Date.now();
-        touchStartCoords = {
-          x: e.touches[0].clientX,
-          y: e.touches[0].clientY
-        };
-        
-        longPressTimer.current = setTimeout(() => {
-          if (touchCount === 1) { // Only trigger if still a single touch
-            isLongPress.current = true;
-            const touch = e.touches[0];
-            const latLng = new window.google.maps.LatLng(
-              touch.latLng.lat(),
-              touch.latLng.lng()
-            );
-            const newCenter = { lat: latLng.lat(), lng: latLng.lng() };
-            setCenter(newCenter);
-            // Fit bounds after moving circle with long press
-            fitCircleBounds(map, newCenter);
-          }
-        }, LONG_PRESS_DURATION);
-      } else {
-        // Multi-touch - cancel any pending long press
-        touchCount = e.touches.length;
-        if (longPressTimer.current) {
-          clearTimeout(longPressTimer.current);
-          longPressTimer.current = null;
-        }
-      }
-    };
-
-    const handleTouchMove = (e) => {
-      if (e.touches.length > 1) {
-        // Multi-touch - cancel any pending long press
-        touchCount = e.touches.length;
-        if (longPressTimer.current) {
-          clearTimeout(longPressTimer.current);
-          longPressTimer.current = null;
-        }
-        return;
-      }
-
-      // For single touch, check if finger moved too much
-      if (touchCount === 1 && touchStartTime > 0) {
-        const touch = e.touches[0];
-        const dx = Math.abs(touch.clientX - touchStartCoords.x);
-        const dy = Math.abs(touch.clientY - touchStartCoords.y);
-        
-        // If finger moved too much, cancel the long press
-        if (dx > TOUCH_MOVE_TOLERANCE || dy > TOUCH_MOVE_TOLERANCE) {
-          if (longPressTimer.current) {
-            clearTimeout(longPressTimer.current);
-            longPressTimer.current = null;
-          }
-        }
-      }
-    };
-
-    const handleTouchEnd = () => {
-      // Reset touch state
-      touchCount = 0;
-      touchStartTime = 0;
-      if (longPressTimer.current) {
-        clearTimeout(longPressTimer.current);
-        longPressTimer.current = null;
-      }
-    };
-
-    // Mouse event handlers for desktop
     const handleMouseDown = (e) => {
-      // Only handle left mouse button
-      if (e.domEvent.button !== 0) return;
-      
+      // Start long press timer (500ms)
       isLongPress.current = false;
-      touchStartCoords = {
-        x: e.domEvent.clientX,
-        y: e.domEvent.clientY
-      };
-      
       longPressTimer.current = setTimeout(() => {
         isLongPress.current = true;
         const latLng = e.latLng || map.getCenter();
@@ -153,26 +67,22 @@ function UserLocationRange({ map, userLocation }) {
         setCenter(newCenter);
         // Fit bounds after moving circle with long press
         fitCircleBounds(map, newCenter);
-      }, LONG_PRESS_DURATION);
+      }, 500);
     };
 
     const handleMouseUp = () => {
+      // Clear the long press timer if it hasn't fired yet
       if (longPressTimer.current) {
         clearTimeout(longPressTimer.current);
         longPressTimer.current = null;
       }
     };
 
-    const handleMouseMove = (e) => {
-      if (longPressTimer.current && touchStartCoords) {
-        const dx = Math.abs(e.domEvent.clientX - touchStartCoords.x);
-        const dy = Math.abs(e.domEvent.clientY - touchStartCoords.y);
-        
-        // If mouse moved too much, cancel the long press
-        if (dx > TOUCH_MOVE_TOLERANCE || dy > TOUCH_MOVE_TOLERANCE) {
-          clearTimeout(longPressTimer.current);
-          longPressTimer.current = null;
-        }
+    const handleMouseMove = () => {
+      // If the mouse moves too much during a long press, cancel it
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
       }
     };
 
@@ -180,23 +90,14 @@ function UserLocationRange({ map, userLocation }) {
     const mouseDownListener = map.addListener('mousedown', handleMouseDown);
     const mouseUpListener = map.addListener('mouseup', handleMouseUp);
     const mouseMoveListener = map.addListener('mousemove', handleMouseMove);
-    
-    // Touch event listeners
-    const touchStartListener = map.addListener('touchstart', handleTouchStart);
-    const touchMoveListener = map.addListener('touchmove', handleTouchMove, { passive: true });
-    const touchEndListener = map.addListener('touchend', handleTouchEnd);
-    const touchCancelListener = map.addListener('touchcancel', handleTouchEnd);
+    const dragListener = map.addListener('drag', handleMouseMove);
 
     // Cleanup
     return () => {
       mouseDownListener.remove();
       mouseUpListener.remove();
       mouseMoveListener.remove();
-      touchStartListener.remove();
-      touchMoveListener.remove();
-      touchEndListener.remove();
-      touchCancelListener.remove();
-      
+      dragListener.remove();
       if (longPressTimer.current) {
         clearTimeout(longPressTimer.current);
       }
