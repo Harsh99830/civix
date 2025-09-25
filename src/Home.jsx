@@ -2,6 +2,7 @@ import React,{ useEffect, useRef, useState } from 'react'
 import './App.css'
 import Navbar from './components/Navbar'
 import LocationButton from './components/LocationButton'
+import ReportIssueButton from './components/ReportIssueButton'
 const mockNearby = [
   {
     id: 1,
@@ -407,11 +408,21 @@ export default function Home() {
       />
       
       {map && (
-        <LocationButton 
-          map={map} 
-          bottomSheetOpen={bottomSheetOpen}
-          dragData={dragData}
-        />
+        <>
+          <LocationButton 
+            map={map} 
+            bottomSheetOpen={bottomSheetOpen}
+            dragData={dragData}
+          />
+          <ReportIssueButton 
+            bottomSheetOpen={bottomSheetOpen}
+            dragData={dragData}
+            onClick={() => {
+              // Handle report issue click
+              console.log('Report issue clicked');
+            }}
+          />
+        </>
       )}
     </div>
   )
