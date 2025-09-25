@@ -89,14 +89,12 @@ function LocationButton({ map, bottomSheetOpen, dragData = { progress: 1, offset
           if (firstFixRef.current) {
             setIsLoading(false);
             setButtonActive(true);
-            // Zoom in to a closer level on first fix
+            // Only pan and zoom on first fix
             map.panTo(loc);
             map.setZoom(Math.max(map.getZoom() || 13, 16));
             firstFixRef.current = false;
-          } else {
-            // Follow the user in real-time
-            map.panTo(loc);
           }
+          // Don't auto-pan during normal tracking - only update marker position
         },
         (error) => {
           console.warn('watchPosition error:', error);
@@ -126,6 +124,10 @@ function LocationButton({ map, bottomSheetOpen, dragData = { progress: 1, offset
     if (isTracking) {
       stopTracking();
     } else {
+      // If we have a location, pan to it when the button is clicked
+      if (userLocation) {
+        map.panTo(userLocation);
+      }
       startTracking();
     }
   };
