@@ -4,6 +4,7 @@ import Navbar from './components/Navbar'
 import LocationButton from './components/LocationButton'
 import ReportIssueButton from './components/ReportIssueButton'
 import pothole1 from './assets/pothole1.png'
+import locationMarker from './assets/location_marker.png'
 const mockNearby = [
   {
     id: 1,
@@ -250,7 +251,7 @@ function MapView({ onMapReady }) {
 
       // Selected marker options (custom image)
       const selectedIcon = {
-        url: '/src/assets/location_marker.png',
+        url: locationMarker,
         scaledSize: new window.google.maps.Size(40, 40), // Adjust size as needed
         origin: new window.google.maps.Point(0, 0),
         anchor: new window.google.maps.Point(20, 40) // Center bottom of the image
