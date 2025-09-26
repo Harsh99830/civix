@@ -158,9 +158,14 @@ function BottomSheet({ items, onStateChange, onDragPosition }) {
     const touch = e.touches[0]
     touchStartX.current = touch.clientX
     touchStartScrollLeft.current = listRef.current?.scrollLeft || 0
+    
+    // Enable smooth scrolling for touch devices
+    if (listRef.current) {
+      listRef.current.style.scrollBehavior = 'smooth'
+    }
   }, [])
 
-  // Handle touch move for smoother scrolling
+  // Simple touch move handler
   const handleTouchMove = useCallback((e) => {
     if (!listRef.current) return
     
@@ -168,26 +173,25 @@ function BottomSheet({ items, onStateChange, onDragPosition }) {
     const touchX = touch.clientX
     const touchDiff = touchStartX.current - touchX
     
-    // Add some resistance when near the edges
     const list = listRef.current
     const maxScroll = list.scrollWidth - list.clientWidth
-    const atStart = list.scrollLeft <= 0
-    const atEnd = list.scrollLeft >= maxScroll - 1
     
-    // Only prevent default if we're actually scrolling horizontally
+    // Only handle horizontal scroll
     if (Math.abs(touchDiff) > 5) {
-      // Add resistance at boundaries
-      if ((atStart && touchDiff < 0) || (atEnd && touchDiff > 0)) {
-        // Reduce the effect of the drag when at boundaries
-        list.scrollLeft = touchStartScrollLeft.current + (touchDiff * 0.5)
-      } else {
-        e.preventDefault()
-        list.scrollLeft = touchStartScrollLeft.current + touchDiff
-      }
+      e.preventDefault()
+      let newScroll = touchStartScrollLeft.current + touchDiff
+      
+      // Prevent scrolling past boundaries
+      newScroll = Math.max(0, Math.min(newScroll, maxScroll))
+      list.scrollLeft = newScroll
+      
+      // Update touch start for next move
+      touchStartX.current = touchX
+      touchStartScrollLeft.current = newScroll
     }
   }, [])
 
-  // Handle scroll momentum with better touch support
+  // Simple scroll handler with snapping
   const handleScroll = useCallback((e) => {
     if (!listRef.current) return
     
@@ -196,42 +200,28 @@ function BottomSheet({ items, onStateChange, onDragPosition }) {
     const scrollWidth = list.scrollWidth - list.clientWidth
     const itemWidth = (list.firstChild?.clientWidth || list.clientWidth) + 16 // 16px gap
     
-    // Calculate the nearest snap point
-    const snapIndex = Math.round(scrollLeft / itemWidth)
-    const snapPosition = snapIndex * itemWidth
-    
-    // Add resistance at boundaries with smoother transitions
-    if (scrollLeft < -20 || scrollLeft > scrollWidth + 20) {
-      // Only apply resistance when significantly past boundaries
-      list.scrollLeft = scrollLeft < 0 ? 0 : scrollWidth
-    } else {
-      // Smooth snap to nearest item with debounce
-      clearTimeout(list.scrollTimeout)
-      list.scrollTimeout = setTimeout(() => {
-        const currentScroll = list.scrollLeft
-        const direction = snapPosition > currentScroll ? 1 : -1
-        const distance = Math.abs(snapPosition - currentScroll)
-        const duration = Math.min(300, distance * 0.5) // Dynamic duration based on distance
-        
-        const startTime = performance.now()
-        const startPos = currentScroll
-        const scrollDistance = snapPosition - startPos
-        
-        const animateScroll = (currentTime) => {
-          const elapsed = currentTime - startTime
-          const progress = Math.min(elapsed / duration, 1)
-          const ease = (t) => t<.5 ? 2*t*t : -1+(4-2*t)*t // easeInOutQuad
-          
-          list.scrollLeft = startPos + (scrollDistance * ease(progress))
-          
-          if (progress < 1) {
-            requestAnimationFrame(animateScroll)
-          }
-        }
-        
-        requestAnimationFrame(animateScroll)
-      }, 50) // Reduced debounce time for more responsive feel
+    // Prevent elastic scrolling
+    if (scrollLeft < 0) {
+      list.scrollLeft = 0
+      return
+    } else if (scrollLeft > scrollWidth) {
+      list.scrollLeft = scrollWidth
+      return
     }
+    
+    // Simple snap to nearest item when scrolling stops
+    clearTimeout(list.scrollTimeout)
+    list.scrollTimeout = setTimeout(() => {
+      const snapIndex = Math.round(scrollLeft / itemWidth)
+      const snapPosition = snapIndex * itemWidth
+      
+      if (Math.abs(scrollLeft - snapPosition) > 5) {
+        list.scrollTo({
+          left: snapPosition,
+          behavior: 'smooth'
+        })
+      }
+    }, 100)
   }, [])
 
   useEffect(() => {
