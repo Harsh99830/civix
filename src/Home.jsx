@@ -149,8 +149,33 @@ function BottomSheet({ items, onStateChange, onDragPosition }) {
   const currentOffset = useRef(0)
   const closedOffset = useRef(0)
   const [isOpen, setIsOpen] = useState(false)
+  const touchStartX = useRef(0)
+  const touchStartScrollLeft = useRef(0)
   
-  // Handle scroll momentum
+  // Handle scroll momentum with better touch support
+  // Handle touch start for mobile
+  const handleTouchStart = useCallback((e) => {
+    const touch = e.touches[0]
+    touchStartX.current = touch.clientX
+    touchStartScrollLeft.current = listRef.current?.scrollLeft || 0
+  }, [])
+
+  // Handle touch move for mobile
+  const handleTouchMove = useCallback((e) => {
+    if (!listRef.current) return
+    
+    const touch = e.touches[0]
+    const touchX = touch.clientX
+    const touchDiff = touchStartX.current - touchX
+    
+    // Only prevent default if we're actually scrolling horizontally
+    if (Math.abs(touchDiff) > 5) {
+      e.preventDefault()
+      listRef.current.scrollLeft = touchStartScrollLeft.current + touchDiff
+    }
+  }, [])
+
+  // Handle scroll momentum with better touch support
   const handleScroll = useCallback((e) => {
     if (!listRef.current) return
     
@@ -163,26 +188,22 @@ function BottomSheet({ items, onStateChange, onDragPosition }) {
     const snapIndex = Math.round(scrollLeft / itemWidth)
     const snapPosition = snapIndex * itemWidth
     
-    // Only apply snap if we're not at the boundaries or close to them
-    const isAtStart = scrollLeft < 10
-    const isAtEnd = scrollLeft > scrollWidth - 10
-    
-    if (!isAtStart && !isAtEnd) {
-      // Add some resistance when scrolling past boundaries
-      if (scrollLeft < 0) {
-        list.scrollLeft = 0
-      } else if (scrollLeft > scrollWidth) {
-        list.scrollLeft = scrollWidth
-      } else {
-        // Smoothly snap to the nearest item
-        clearTimeout(list.scrollTimeout)
-        list.scrollTimeout = setTimeout(() => {
-          list.scrollTo({
-            left: snapPosition,
-            behavior: 'smooth'
-          })
-        }, 100)
-      }
+    // Add resistance at boundaries
+    if (scrollLeft < 0) {
+      // Elastic effect when pulling past start
+      list.scrollLeft = 0
+    } else if (scrollLeft > scrollWidth) {
+      // Elastic effect when pulling past end
+      list.scrollLeft = scrollWidth
+    } else {
+      // Snap to nearest item with debounce
+      clearTimeout(list.scrollTimeout)
+      list.scrollTimeout = setTimeout(() => {
+        list.scrollTo({
+          left: snapPosition,
+          behavior: 'smooth'
+        })
+      }, 100)
     }
   }, [])
 
@@ -305,6 +326,8 @@ function BottomSheet({ items, onStateChange, onDragPosition }) {
           ref={listRef}
           className="nearby-list"
           onScroll={handleScroll}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
         >
           {items.map((it) => (
             <div 
