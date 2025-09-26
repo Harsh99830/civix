@@ -197,6 +197,65 @@ function MapView({ onMapReady }) {
       // Notify parent component that map is ready
       if (onMapReady) onMapReady(map)
       
+      // Add markers for the given coordinates
+      const locations = [
+        { lat: 26.778374, lng: 75.877988 },
+        { lat: 26.776955, lng: 75.87657 },
+        { lat: 26.778325, lng: 75.881454 },
+        { lat: 26.781988, lng: 75.881922 },
+        { lat: 26.786563, lng: 75.862612 },
+        { lat: 26.773054, lng: 75.860337 },
+        { lat: 26.768911, lng: 75.884617 }
+      ]
+
+      // Default marker options (red circle)
+      const defaultIcon = {
+        path: window.google.maps.SymbolPath.CIRCLE,
+        fillColor: '#FF0000',
+        fillOpacity: 1,
+        strokeWeight: 0,
+        scale: 8
+      };
+
+      // Selected marker options (custom image)
+      const selectedIcon = {
+        url: '/src/assets/location_marker.png',
+        scaledSize: new window.google.maps.Size(40, 40), // Adjust size as needed
+        origin: new window.google.maps.Point(0, 0),
+        anchor: new window.google.maps.Point(20, 40) // Center bottom of the image
+      };
+
+      // Store references to all markers
+      const markers = [];
+      let selectedMarker = null;
+
+      locations.forEach((location, index) => {
+        const marker = new window.google.maps.Marker({
+          position: location,
+          map: map,
+          title: `Location ${index + 1}`,
+          icon: defaultIcon
+        });
+
+        // Add click event listener
+        marker.addListener('click', () => {
+          // Reset previously selected marker
+          if (selectedMarker) {
+            selectedMarker.setIcon(defaultIcon);
+          }
+          
+          // Set new selected marker
+          selectedMarker = marker;
+          marker.setIcon(selectedIcon);
+          
+          // Zoom to the clicked marker with smooth animation
+          map.panTo(marker.getPosition());
+          map.setZoom(16); // You can adjust the zoom level (1-20 where 20 is most zoomed in)
+        });
+
+        markers.push(marker);
+      })
+      
       // Ensure container can host overlay elements
       try {
         if (mapEl.current && getComputedStyle(mapEl.current).position === 'static') {
