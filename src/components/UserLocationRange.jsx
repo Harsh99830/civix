@@ -2,14 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 
 /**
- * A component that displays a 2km radius circle at the current location by default
- * and allows moving it with a long-press.
+ * A component that displays a 2km radius circle at the current location
  */
 function UserLocationRange({ map, userLocation }) {
   const rangeCircleRef = useRef(null);
   const [center, setCenter] = useState(null);
-  const longPressTimer = useRef(null);
-  const isLongPress = useRef(false);
   
   // Convert 2km to meters (Google Maps uses meters for circle radius)
   const RANGE_RADIUS_METERS = 2000;
@@ -53,60 +50,6 @@ function UserLocationRange({ map, userLocation }) {
     }
   }, [userLocation, map]);
 
-  // Initialize event listeners when the map is ready
-  useEffect(() => {
-    if (!map || !window.google?.maps) return;
-
-    const handleMouseDown = (e) => {
-      // Start long press timer (500ms)
-      isLongPress.current = false;
-      longPressTimer.current = setTimeout(() => {
-        isLongPress.current = true;
-        const latLng = e.latLng || map.getCenter();
-        const newCenter = { lat: latLng.lat(), lng: latLng.lng() };
-        setCenter(newCenter);
-        // Fit bounds after moving circle with long press
-        fitCircleBounds(map, newCenter);
-      }, 500);
-    };
-
-    const handleMouseUp = () => {
-      // Clear the long press timer if it hasn't fired yet
-      if (longPressTimer.current) {
-        clearTimeout(longPressTimer.current);
-        longPressTimer.current = null;
-      }
-    };
-
-    const handleMouseMove = () => {
-      // If the mouse moves too much during a long press, cancel it
-      if (longPressTimer.current) {
-        clearTimeout(longPressTimer.current);
-        longPressTimer.current = null;
-      }
-    };
-
-    // Add event listeners
-    const mouseDownListener = map.addListener('mousedown', handleMouseDown);
-    const mouseUpListener = map.addListener('mouseup', handleMouseUp);
-    const mouseMoveListener = map.addListener('mousemove', handleMouseMove);
-    const dragListener = map.addListener('drag', handleMouseMove);
-
-    // Cleanup
-    return () => {
-      mouseDownListener.remove();
-      mouseUpListener.remove();
-      mouseMoveListener.remove();
-      dragListener.remove();
-      if (longPressTimer.current) {
-        clearTimeout(longPressTimer.current);
-      }
-      if (rangeCircleRef.current) {
-        rangeCircleRef.current.setMap(null);
-      }
-    };
-  }, [map]);
-
   // Update circle position when center changes
   useEffect(() => {
     if (!map || !window.google?.maps || !center) return;
@@ -146,8 +89,8 @@ function UserLocationRange({ map, userLocation }) {
 UserLocationRange.propTypes = {
   map: PropTypes.object,
   userLocation: PropTypes.shape({
-    lat: PropTypes.number.isRequired,
-    lng: PropTypes.number.isRequired,
+    lat: PropTypes.number,
+    lng: PropTypes.number,
   }),
 };
 
