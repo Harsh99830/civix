@@ -1,10 +1,16 @@
-import React,{ useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import './App.css'
 import Navbar from './components/Navbar'
 import LocationButton from './components/LocationButton'
 import ReportIssueButton from './components/ReportIssueButton'
 import pothole1 from './assets/pothole1.png'
 import locationMarker from './assets/location_marker.png'
+import streetLight from './assets/streetlight.png'
+import garbage from './assets/garbage.png'
+import sidewalk from './assets/sidewalk.png'
+import waterleak from './assets/waterleakage.png'
+import trafficsignal from './assets/trafficsignal.png'
+import tree from './assets/tree.png'
 const mockNearby = [
   {
     id: 1,
@@ -12,7 +18,7 @@ const mockNearby = [
     description: 'A deep pothole has formed at the intersection causing traffic issues and potential damage to vehicles.',
     category: 'Pothole',
     progress: 45,
-    image:pothole1,
+    image: pothole1,
     location: 'Main St & 5th Ave',
     issueDetails: {
       id: 1,
@@ -20,8 +26,116 @@ const mockNearby = [
       description: 'A deep pothole has formed at the intersection causing traffic issues and potential damage to vehicles.',
       category: 'Pothole',
       progress: 45,
-      image: 'https://images.unsplash.com/photo-1612196774550-7c7a1a6d4e0e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80',
+      image: pothole1,
       location: 'Main St & 5th Ave'
+    }
+  },
+  {
+    id: 2,
+    title: 'Broken Street Light',
+    description: 'The street light at the corner has been flickering and needs immediate attention for safety reasons.',
+    category: 'Street Light',
+    progress: 20,
+    image: streetLight,
+    location: 'Elm St & 3rd Ave',
+    issueDetails: {
+      id: 2,
+      title: 'Broken Street Light',
+      description: 'The street light at the corner has been flickering and needs immediate attention for safety reasons.',
+      category: 'Street Light',
+      progress: 20,
+      image: streetLight,
+      location: 'Elm St & 3rd Ave'
+    }
+  },
+  {
+    id: 3,
+    title: 'Garbage Not Collected',
+    description: 'Garbage has been piling up for days in the designated area, causing foul smell and hygiene issues.',
+    category: 'Sanitation',
+    progress: 65,
+    image: garbage,
+    location: 'Oak St & 7th Ave',
+    issueDetails: {
+      id: 3,
+      title: 'Garbage Not Collected',
+      description: 'Garbage has been piling up for days in the designated area, causing foul smell and hygiene issues.',
+      category: 'Sanitation',
+      progress: 65,
+      image: garbage,
+      location: 'Oak St & 7th Ave'
+    }
+  },
+  {
+    id: 4,
+    title: 'Damaged Sidewalk',
+    description: 'Uneven and broken sidewalk tiles creating a tripping hazard for pedestrians, especially during night time.',
+    category: 'Sidewalk',
+    progress: 30,
+    image: sidewalk,
+    location: 'Pine St & 2nd Ave',
+    issueDetails: {
+      id: 4,
+      title: 'Damaged Sidewalk',
+      description: 'Uneven and broken sidewalk tiles creating a tripping hazard for pedestrians, especially during night time.',
+      category: 'Sidewalk',
+      progress: 30,
+      image: sidewalk,
+      location: 'Pine St & 2nd Ave'
+    }
+  },
+  {
+    id: 5,
+    title: 'Water Leakage',
+    description: 'Continuous water leakage from the main water line is causing water wastage and road damage.',
+    category: 'Water Supply',
+    progress: 15,
+    image: waterleak,
+    location: 'Cedar St & 8th Ave',
+    issueDetails: {
+      id: 5,
+      title: 'Water Leakage',
+      description: 'Continuous water leakage from the main water line is causing water wastage and road damage.',
+      category: 'Water Supply',
+      progress: 15,
+      image: waterleak,
+      location: 'Cedar St & 8th Ave'
+    }
+  },
+  {
+    id: 6,
+    title: 'Traffic Signal Malfunction',
+    description: 'The traffic signal at the intersection is not functioning properly, causing traffic congestion.',
+    category: 'Traffic',
+    progress: 80,
+    image: trafficsignal,
+    location: 'Maple St & 4th Ave',
+    issueDetails: {
+      id: 6,
+      title: 'Traffic Signal Malfunction',
+      description: 'The traffic signal at the intersection is not functioning properly, causing traffic congestion.',
+      category: 'Traffic',
+      progress: 80,
+      image: trafficsignal,
+      location: 'Maple St & 4th Ave'
+    }
+  },
+  {
+    id: 7,
+    title: 'Overgrown Trees',
+    description: 'Tree branches are overgrown and obstructing the street lights and road signs.',
+    category: 'Parks',
+    progress: 25,
+    image: tree,
+    location: 'Birch St & 6th Ave',
+    issueDetails: {
+      id: 7,
+      title: 'Overgrown Trees',
+      description: 'Tree branches are overgrown and obstructing the street lights and road signs.',
+      category: 'Parks',
+      progress: 25,
+      image: tree,
+      location: 'Birch St & 6th Ave'
     }
   }
 ]
@@ -29,11 +143,48 @@ const mockNearby = [
 function BottomSheet({ items, onStateChange, onDragPosition }) {
   const sheetRef = useRef(null)
   const handleRef = useRef(null)
+  const listRef = useRef(null)
   const startY = useRef(0)
   const dragStartOffset = useRef(0)
   const currentOffset = useRef(0)
   const closedOffset = useRef(0)
   const [isOpen, setIsOpen] = useState(false)
+  
+  // Handle scroll momentum
+  const handleScroll = useCallback((e) => {
+    if (!listRef.current) return
+    
+    const list = listRef.current
+    const scrollLeft = list.scrollLeft
+    const scrollWidth = list.scrollWidth - list.clientWidth
+    const itemWidth = list.firstChild?.clientWidth || list.clientWidth
+    
+    // Calculate the nearest snap point
+    const snapIndex = Math.round(scrollLeft / itemWidth)
+    const snapPosition = snapIndex * itemWidth
+    
+    // Only apply snap if we're not at the boundaries or close to them
+    const isAtStart = scrollLeft < 10
+    const isAtEnd = scrollLeft > scrollWidth - 10
+    
+    if (!isAtStart && !isAtEnd) {
+      // Add some resistance when scrolling past boundaries
+      if (scrollLeft < 0) {
+        list.scrollLeft = 0
+      } else if (scrollLeft > scrollWidth) {
+        list.scrollLeft = scrollWidth
+      } else {
+        // Smoothly snap to the nearest item
+        clearTimeout(list.scrollTimeout)
+        list.scrollTimeout = setTimeout(() => {
+          list.scrollTo({
+            left: snapPosition,
+            behavior: 'smooth'
+          })
+        }, 100)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     const el = sheetRef.current
@@ -150,9 +301,16 @@ function BottomSheet({ items, onStateChange, onDragPosition }) {
       </div>
 
       <div className="sheet-content">
-        <div className="nearby-list">
+        <div 
+          ref={listRef}
+          className="nearby-list"
+          onScroll={handleScroll}
+        >
           {items.map((it) => (
-            <div key={it.id} className="nearby-card bg-white rounded-lg shadow-md overflow-hidden">
+            <div 
+              key={it.id} 
+              className="nearby-card"
+            >
               <div className="p-4">
                 <div className="mb-2">
                   <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-semibold">
