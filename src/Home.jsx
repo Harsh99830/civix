@@ -392,18 +392,19 @@ function BottomSheet({ items, onStateChange, onDragPosition }) {
           {items.map((item) => (
             <div 
               key={item.id} 
-              className="nearby-card"
+              className="nearby-card flex flex-col h-full"
             >
-              <div className="p-4">
-                <div className="mb-2">
-                  <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-semibold">
+              <div className="p-3 flex-grow">
+                <div className="flex justify-between items-start mb-1">
+                  <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full font-semibold">
                     {item.category || 'Pothole'}
                   </span>
+                  <span className="text-xs text-gray-500">{item.location}</span>
                 </div>
-                <h4 className="text-lg font-semibold text-gray-800 mb-3">{item.title}</h4>
+                <h4 className="text-sm font-semibold text-gray-800 mb-1 line-clamp-1">{item.title}</h4>
                 
-                {/* Issue Image - Moved below title */}
-                <div className="relative w-full h-48 bg-gray-100 mb-3 -mx-4">
+                {/* Issue Image - Made smaller */}
+                <div className="relative w-full h-28 bg-gray-100 mb-2 -mx-3">
                   {item.image ? (
                     <img 
                       src={item.image} 
@@ -411,26 +412,25 @@ function BottomSheet({ items, onStateChange, onDragPosition }) {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
                       No Image Available
                     </div>
                   )}
                 </div>
                 
-                <p className="text-gray-600 text-sm mb-3">{item.description}</p>
-                <div className="mb-2">
-                  <div className="flex justify-between text-xs text-gray-500 mb-1">
+                <p className="text-xs text-gray-600 mb-2 line-clamp-2">{item.description}</p>
+                <div className="mt-auto">
+                  <div className="flex justify-between text-xs text-gray-500 mb-0.5">
                     <span>Progress</span>
-                    <span>{item.progress || 0}%</span>
+                    <span className="font-medium">{item.progress || 0}%</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="w-full bg-gray-200 rounded-full h-1.5">
                     <div 
-                      className="bg-blue-600 h-2 rounded-full" 
+                      className="bg-blue-600 h-1.5 rounded-full" 
                       style={{ width: `${item.progress || 0}%` }}
                     />
                   </div>
                 </div>
-                <p className="text-sm text-gray-500 mt-2">{item.location}</p>
               </div>
             </div>
           ))}
