@@ -3,6 +3,7 @@ import './App.css'
 import Navbar from './components/Navbar'
 import LocationButton from './components/LocationButton'
 import ReportIssueButton from './components/ReportIssueButton'
+import IssueBottomSheet from './components/IssueBottomSheet'
 import pothole1 from './assets/pothole1.png'
 import locationMarker from './assets/location_marker.png'
 import streetLight from './assets/streetlight.png'
@@ -140,7 +141,7 @@ const mockNearby = [
   }
 ]
 
-function BottomSheet({ items, onStateChange, onDragPosition }) {
+function BottomSheet({ items, onStateChange, onDragPosition, isOpen: externalIsOpen, selectedIssue, showIssueDetail, onCloseIssueDetail }) {
   const sheetRef = useRef(null)
   const handleRef = useRef(null)
   const listRef = useRef(null)
@@ -151,6 +152,13 @@ function BottomSheet({ items, onStateChange, onDragPosition }) {
   const [isOpen, setIsOpen] = useState(false)
   const touchStartX = useRef(0)
   const touchStartScrollLeft = useRef(0)
+  
+  // Sync external isOpen prop with internal state
+  useEffect(() => {
+    if (externalIsOpen !== undefined && externalIsOpen !== isOpen) {
+      setIsOpen(externalIsOpen)
+    }
+  }, [externalIsOpen, isOpen])
   
   // Handle scroll momentum with better touch support
   // Handle touch start for mobile with passive: false for better control
@@ -357,109 +365,114 @@ function BottomSheet({ items, onStateChange, onDragPosition }) {
       className={`bottom-sheet ${isOpen ? 'open' : 'closed'}`}>
       <div className="sheet-handle" ref={handleRef}>
         <div className="handle-bar" />
-        <span className="handle-label">Nearby</span>
+        <span className="handle-label">{showIssueDetail ? 'Issue Details' : 'Nearby'}</span>
       </div>
 
       <div className="sheet-content relative">
-        {/* Left Arrow */}
-        <button 
-          onClick={() => {
-            if (!listRef.current) return;
-            const itemWidth = (listRef.current.firstChild?.clientWidth || listRef.current.clientWidth) + 16;
-            listRef.current.scrollBy({
-              left: -itemWidth,
-              behavior: 'smooth'
-            });
-          }}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white/90 w-8 h-12 flex items-center justify-center rounded-r-lg shadow-md"
-          aria-label="Previous issue"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        
-        {/* Issue List */}
-        <div 
-          ref={listRef}
-          className="nearby-list"
-          onScroll={handleScroll}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onTouchCancel={handleTouchEnd}
-        >
-          {items.map((item) => (
-            <div 
-              key={item.id} 
-              className="nearby-card flex flex-col h-full"
+        {showIssueDetail && selectedIssue ? (
+          <IssueBottomSheet issue={selectedIssue} onClose={onCloseIssueDetail} />
+        ) : (
+          <>
+            {/* Left Arrow */}
+            <button 
+              onClick={() => {
+                if (!listRef.current) return;
+                const itemWidth = (listRef.current.firstChild?.clientWidth || listRef.current.clientWidth) + 16;
+                listRef.current.scrollBy({
+                  left: -itemWidth,
+                  behavior: 'smooth'
+                });
+              }}
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white/90 w-8 h-12 flex items-center justify-center rounded-r-lg shadow-md"
+              aria-label="Previous issue"
             >
-              <div className="p-3 flex-grow">
-                <div className="flex justify-between items-start mb-1">
-                  <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full font-semibold">
-                    {item.category || 'Pothole'}
-                  </span>
-                  <span className="text-xs text-gray-500">{item.location}</span>
-                </div>
-                <h4 className="text-sm font-semibold text-gray-800 mb-1 line-clamp-1">{item.title}</h4>
-                
-                {/* Issue Image - Made smaller */}
-                <div className="relative w-full h-28 bg-gray-100 mb-2 -mx-3">
-                  {item.image ? (
-                    <img 
-                      src={item.image} 
-                      alt={item.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                      No Image Available
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            
+            {/* Issue List */}
+            <div 
+              ref={listRef}
+              className="nearby-list"
+              onScroll={handleScroll}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onTouchCancel={handleTouchEnd}
+            >
+              {items.map((item) => (
+                <div 
+                  key={item.id} 
+                  className="nearby-card flex flex-col h-full"
+                >
+                  <div className="p-3 flex-grow">
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full font-semibold">
+                        {item.category || 'Pothole'}
+                      </span>
+                      <span className="text-xs text-gray-500">{item.location}</span>
                     </div>
-                  )}
-                </div>
-                
-                <p className="text-xs text-gray-600 mb-2 line-clamp-2">{item.description}</p>
-                <div className="mt-auto">
-                  <div className="flex justify-between text-xs text-gray-500 mb-0.5">
-                    <span>Progress</span>
-                    <span className="font-medium">{item.progress || 0}%</span>
+                    <h4 className="text-sm font-semibold text-gray-800 mb-1 line-clamp-1">{item.title}</h4>
+                    
+                    {/* Issue Image - Made smaller */}
+                    <div className="relative w-full h-28 bg-gray-100 mb-2 -mx-3">
+                      {item.image ? (
+                        <img 
+                          src={item.image} 
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+                          No Image Available
+                        </div>
+                      )}
+                    </div>
+                    
+                    <p className="text-xs text-gray-600 mb-2 line-clamp-2">{item.description}</p>
+                    <div className="mt-auto">
+                      <div className="flex justify-between text-xs text-gray-500 mb-0.5">
+                        <span>Progress</span>
+                        <span className="font-medium">{item.progress || 0}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1.5">
+                        <div 
+                          className="bg-blue-600 h-1.5 rounded-full" 
+                          style={{ width: `${item.progress || 0}%` }}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-1.5">
-                    <div 
-                      className="bg-blue-600 h-1.5 rounded-full" 
-                      style={{ width: `${item.progress || 0}%` }}
-                    />
-                  </div>
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
-            </div>
-        </div>
-        
-        {/* Right Arrow */}
-        <button 
-          onClick={() => {
-            if (!listRef.current) return;
-            const itemWidth = (listRef.current.firstChild?.clientWidth || listRef.current.clientWidth) + 16;
-            listRef.current.scrollBy({
-              left: itemWidth,
-              behavior: 'smooth'
-            });
-          }}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white/90 w-8 h-12 flex items-center justify-center rounded-l-lg shadow-md"
-          aria-label="Next issue"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
+            
+            {/* Right Arrow */}
+            <button 
+              onClick={() => {
+                if (!listRef.current) return;
+                const itemWidth = (listRef.current.firstChild?.clientWidth || listRef.current.clientWidth) + 16;
+                listRef.current.scrollBy({
+                  left: itemWidth,
+                  behavior: 'smooth'
+                });
+              }}
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white/90 w-8 h-12 flex items-center justify-center rounded-l-lg shadow-md"
+              aria-label="Next issue"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </>
+        )}
       </div>
-    
+    </div>
   )
 }
 
-function MapView({ onMapReady }) {
+function MapView({ onMapReady, onLocationClick }) {
   const mapEl = useRef(null)
 
   useEffect(() => {
@@ -531,6 +544,7 @@ function MapView({ onMapReady }) {
 
         // Add click event listener
         marker.addListener('click', () => {
+          console.log('Marker clicked for location:', location)
           // Reset previously selected marker
           if (selectedMarker) {
             selectedMarker.setIcon(defaultIcon);
@@ -543,6 +557,14 @@ function MapView({ onMapReady }) {
           // Zoom to the clicked marker with smooth animation
           map.panTo(marker.getPosition());
           map.setZoom(16); // You can adjust the zoom level (1-20 where 20 is most zoomed in)
+          
+          // Call the location click handler if provided
+          if (onLocationClick) {
+            console.log('Calling onLocationClick with:', location)
+            onLocationClick(location);
+          } else {
+            console.log('onLocationClick is not provided')
+          }
         });
 
         markers.push(marker);
@@ -726,12 +748,15 @@ export default function Home() {
   const [map, setMap] = useState(null)
   const [bottomSheetOpen, setBottomSheetOpen] = useState(false)
   const [dragData, setDragData] = useState({ progress: 1, offset: 0, closedOffset: 0 })
+  const [selectedIssue, setSelectedIssue] = useState(null)
+  const [showIssueDetail, setShowIssueDetail] = useState(false)
 
   const handleMapReady = (mapInstance) => {
     setMap(mapInstance)
   }
 
   const handleBottomSheetStateChange = (isOpen) => {
+    console.log('Bottom sheet state changed to:', isOpen)
     setBottomSheetOpen(isOpen)
   }
 
@@ -739,12 +764,66 @@ export default function Home() {
     setDragData(data)
   }
 
+  const handleCloseIssueDetail = () => {
+    setShowIssueDetail(false)
+    setSelectedIssue(null)
+  }
+
+  const handleLocationClick = (location) => {
+    console.log('Location clicked:', location)
+    console.log('Current bottomSheetOpen state:', bottomSheetOpen)
+    
+    // Define the locations array to match the order in MapView
+    const locations = [
+      { lat: 26.778374, lng: 75.877988 }, // Issue ID 1
+      { lat: 26.776955, lng: 75.87657 },  // Issue ID 2
+      { lat: 26.778325, lng: 75.881454 }, // Issue ID 3
+      { lat: 26.781988, lng: 75.881922 }, // Issue ID 4
+      { lat: 26.786563, lng: 75.862612 }, // Issue ID 5
+      { lat: 26.773054, lng: 75.860337 }, // Issue ID 6
+      { lat: 26.768911, lng: 75.884617 }  // Issue ID 7
+    ]
+    
+    // Find which location was clicked
+    const locationIndex = locations.findIndex(loc => 
+      loc.lat === location.lat && loc.lng === location.lng
+    )
+    
+    if (locationIndex !== -1) {
+      const issueId = locationIndex + 1 // Issue IDs are 1-based
+      const issue = mockNearby.find(item => item.id === issueId)
+      
+      console.log(`Location ${locationIndex + 1} clicked, showing issue ID ${issueId}`)
+      
+      if (issue) {
+        setSelectedIssue(issue)
+        setShowIssueDetail(true)
+        setBottomSheetOpen(true)
+        
+        // Adjust map to keep location visible when bottom sheet opens
+        if (map) {
+          // Pan to location and adjust zoom
+          map.panTo(location)
+          // Add slight offset to account for bottom sheet
+          setTimeout(() => {
+            const offsetLat = location.lat + 0.002 // Small offset to keep marker visible
+            map.panTo({ lat: offsetLat, lng: location.lng })
+          }, 300)
+        }
+      } else {
+        console.log(`Issue with ID ${issueId} not found`)
+      }
+    } else {
+      console.log('Location does not match any known locations')
+    }
+  }
+
   return (
     <div className="app-root min-h-screen bg-gray-50">
       <Navbar />
       <header className="map-header pt-16">
         <div className="map-wrap tall">
-          <MapView onMapReady={handleMapReady} />
+          <MapView onMapReady={handleMapReady} onLocationClick={handleLocationClick} />
         </div>
       </header>
 
@@ -756,6 +835,10 @@ export default function Home() {
         items={nearby} 
         onStateChange={handleBottomSheetStateChange}
         onDragPosition={handleDragPosition}
+        isOpen={bottomSheetOpen}
+        selectedIssue={selectedIssue}
+        showIssueDetail={showIssueDetail}
+        onCloseIssueDetail={handleCloseIssueDetail}
       />
       
       {map && (
