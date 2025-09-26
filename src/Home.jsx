@@ -224,6 +224,28 @@ function BottomSheet({ items, onStateChange, onDragPosition }) {
     }, 100)
   }, [])
 
+  // Handle touch end for smooth snapping
+  const handleTouchEnd = useCallback((e) => {
+    if (!listRef.current) return;
+    
+    const list = listRef.current;
+    const scrollLeft = list.scrollLeft;
+    const scrollWidth = list.scrollWidth - list.clientWidth;
+    const itemWidth = (list.firstChild?.clientWidth || list.clientWidth) + 16;
+    
+    // Snap to nearest item
+    const snapIndex = Math.round(scrollLeft / itemWidth);
+    const snapPosition = Math.max(0, Math.min(snapIndex * itemWidth, scrollWidth));
+    
+    // Only animate if we're not already close to the snap position
+    if (Math.abs(scrollLeft - snapPosition) > 5) {
+      list.scrollTo({
+        left: snapPosition,
+        behavior: 'smooth'
+      });
+    }
+  }, []);
+
   useEffect(() => {
     const el = sheetRef.current
     const handle = handleRef.current
@@ -338,33 +360,54 @@ function BottomSheet({ items, onStateChange, onDragPosition }) {
         <span className="handle-label">Nearby</span>
       </div>
 
-      <div className="sheet-content">
+      <div className="sheet-content relative">
+        {/* Left Arrow */}
+        <button 
+          onClick={() => {
+            if (!listRef.current) return;
+            const itemWidth = (listRef.current.firstChild?.clientWidth || listRef.current.clientWidth) + 16;
+            listRef.current.scrollBy({
+              left: -itemWidth,
+              behavior: 'smooth'
+            });
+          }}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white/90 w-8 h-12 flex items-center justify-center rounded-r-lg shadow-md"
+          aria-label="Previous issue"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        
+        {/* Issue List */}
         <div 
           ref={listRef}
           className="nearby-list"
           onScroll={handleScroll}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
         >
-          {items.map((it) => (
+          {items.map((item) => (
             <div 
-              key={it.id} 
+              key={item.id} 
               className="nearby-card"
             >
               <div className="p-4">
                 <div className="mb-2">
                   <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-semibold">
-                    {it.category || 'Pothole'}
+                    {item.category || 'Pothole'}
                   </span>
                 </div>
-                <h4 className="text-lg font-semibold text-gray-800 mb-3">{it.title}</h4>
+                <h4 className="text-lg font-semibold text-gray-800 mb-3">{item.title}</h4>
                 
                 {/* Issue Image - Moved below title */}
                 <div className="relative w-full h-48 bg-gray-100 mb-3 -mx-4">
-                  {it.image ? (
+                  {item.image ? (
                     <img 
-                      src={it.image} 
-                      alt={it.title}
+                      src={item.image} 
+                      alt={item.title}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -374,26 +417,45 @@ function BottomSheet({ items, onStateChange, onDragPosition }) {
                   )}
                 </div>
                 
-                <p className="text-gray-600 text-sm mb-3">{it.description}</p>
+                <p className="text-gray-600 text-sm mb-3">{item.description}</p>
                 <div className="mb-2">
                   <div className="flex justify-between text-xs text-gray-500 mb-1">
                     <span>Progress</span>
-                    <span>{it.progress || 0}%</span>
+                    <span>{item.progress || 0}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
                       className="bg-blue-600 h-2 rounded-full" 
-                      style={{ width: `${it.progress || 0}%` }}
+                      style={{ width: `${item.progress || 0}%` }}
                     />
                   </div>
                 </div>
-                <p className="text-sm text-gray-500 mt-2">{it.location}</p>
+                <p className="text-sm text-gray-500 mt-2">{item.location}</p>
               </div>
             </div>
           ))}
+            </div>
         </div>
+        
+        {/* Right Arrow */}
+        <button 
+          onClick={() => {
+            if (!listRef.current) return;
+            const itemWidth = (listRef.current.firstChild?.clientWidth || listRef.current.clientWidth) + 16;
+            listRef.current.scrollBy({
+              left: itemWidth,
+              behavior: 'smooth'
+            });
+          }}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white/90 w-8 h-12 flex items-center justify-center rounded-l-lg shadow-md"
+          aria-label="Next issue"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
       </div>
-    </div>
+    
   )
 }
 
