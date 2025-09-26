@@ -3,24 +3,25 @@ import './App.css'
 import Navbar from './components/Navbar'
 import LocationButton from './components/LocationButton'
 import ReportIssueButton from './components/ReportIssueButton'
+import pothole1 from './assets/pothole1.png'
 const mockNearby = [
   {
     id: 1,
-    title: 'Central Library',
-    summary: 'Popular public library with free wifi',
-    location: 'Main St & 4th Ave'
-  },
-  {
-    id: 2,
-    title: 'Riverside Cafe',
-    summary: 'Local cafe, known for brunch',
-    location: 'Riverside Park'
-  },
-  {
-    id: 3,
-    title: 'City Garden',
-    summary: 'Small community garden with benches',
-    location: 'Oak St & 7th'
+    title: 'Large Pothole on Main Street',
+    description: 'A deep pothole has formed at the intersection causing traffic issues and potential damage to vehicles.',
+    category: 'Pothole',
+    progress: 45,
+    image:pothole1,
+    location: 'Main St & 5th Ave',
+    issueDetails: {
+      id: 1,
+      title: 'Large Pothole on Main Street',
+      description: 'A deep pothole has formed at the intersection causing traffic issues and potential damage to vehicles.',
+      category: 'Pothole',
+      progress: 45,
+      image: 'https://images.unsplash.com/photo-1612196774550-7c7a1a6d4e0e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80',
+      location: 'Main St & 5th Ave'
+    }
   }
 ]
 
@@ -150,14 +151,44 @@ function BottomSheet({ items, onStateChange, onDragPosition }) {
       <div className="sheet-content">
         <div className="nearby-list">
           {items.map((it) => (
-            <div key={it.id} className="nearby-card">
-              <div className="nearby-info">
-                <h4>{it.title}</h4>
-                <p className="nearby-sub">{it.summary}</p>
-                <p className="nearby-loc">{it.location}</p>
-              </div>
-              <div className="nearby-actions">
-                <button className="btn btn-primary">Directions</button>
+            <div key={it.id} className="nearby-card bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="p-4">
+                <div className="mb-2">
+                  <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-semibold">
+                    {it.category || 'Pothole'}
+                  </span>
+                </div>
+                <h4 className="text-lg font-semibold text-gray-800 mb-3">{it.title}</h4>
+                
+                {/* Issue Image - Moved below title */}
+                <div className="relative w-full h-48 bg-gray-100 mb-3 -mx-4">
+                  {it.image ? (
+                    <img 
+                      src={it.image} 
+                      alt={it.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                      No Image Available
+                    </div>
+                  )}
+                </div>
+                
+                <p className="text-gray-600 text-sm mb-3">{it.description}</p>
+                <div className="mb-2">
+                  <div className="flex justify-between text-xs text-gray-500 mb-1">
+                    <span>Progress</span>
+                    <span>{it.progress || 0}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full" 
+                      style={{ width: `${it.progress || 0}%` }}
+                    />
+                  </div>
+                </div>
+                <p className="text-sm text-gray-500 mt-2">{it.location}</p>
               </div>
             </div>
           ))}
