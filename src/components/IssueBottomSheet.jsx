@@ -6,35 +6,33 @@ const IssueBottomSheet = ({ issue, onClose }) => {
   return (
     <div className="h-full overflow-y-auto">
       {/* Header with close button */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <h3 className="text-lg font-semibold text-gray-800">Issue Details</h3>
+      <div className="flex items-center justify-between p-2 border-b">
+        <h3 className="text-base font-semibold text-gray-800">Issue Details</h3>
         <button
           onClick={onClose}
-          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+          className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
           aria-label="Close issue details"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
 
       {/* Issue Content */}
-      <div className="p-4">
-        {/* Category Badge */}
-        <div className="mb-3">
-          <span className="inline-block bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full font-semibold">
+      <div className="p-3">
+        {/* Category and Title in one line */}
+        <div className="flex items-center gap-2 mb-2">
+          <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full font-semibold">
             {issue.category || 'Pothole'}
           </span>
+          <h4 className="text-base font-bold text-gray-800 flex-1 line-clamp-1">
+            {issue.title || 'Unnamed Issue'}
+          </h4>
         </div>
 
-        {/* Title */}
-        <h4 className="text-xl font-bold text-gray-800 mb-3">
-          {issue.title || 'Unnamed Issue'}
-        </h4>
-
         {/* Issue Image */}
-        <div className="relative w-full h-48 bg-gray-100 mb-4 rounded-lg overflow-hidden">
+        <div className="relative w-full h-32 bg-gray-100 mb-2 rounded overflow-hidden">
           {issue.image ? (
             <img 
               src={issue.image} 
@@ -43,66 +41,67 @@ const IssueBottomSheet = ({ issue, onClose }) => {
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-400">
-              No Image Available
             </div>
           )}
         </div>
 
         {/* Location */}
-        <div className="mb-4">
-          <div className="flex items-center text-gray-600 mb-2">
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span className="font-medium">Location</span>
-          </div>
-          <p className="text-gray-700 ml-6">{issue.location || 'Location not specified'}</p>
+        <div className="flex items-center text-xs text-gray-600 mb-1">
+          <svg className="w-3.5 h-3.5 mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span className="line-clamp-1">{issue.location || 'Location not specified'}</span>
         </div>
 
         {/* Description */}
-        <div className="mb-4">
-          <h5 className="font-medium text-gray-800 mb-2">Description</h5>
-          <p className="text-gray-700 leading-relaxed">
+        <div className="mb-2">
+          <h5 className="text-xs font-semibold text-gray-700 mb-1">Description</h5>
+          <p className="text-xs text-gray-600 leading-snug line-clamp-3">
             {issue.description || 'No description provided.'}
           </p>
         </div>
 
         {/* Progress */}
-        <div className="mb-4">
-          <h5 className="font-medium text-gray-800 mb-2">Progress</h5>
-          <div className="flex justify-between text-sm text-gray-600 mb-2">
-            <span>Completion Status</span>
-            <span className="font-medium">{issue.progress || 0}%</span>
+        <div className="mb-2">
+          <div className="flex justify-between items-center mb-1">
+            <h5 className="text-xs font-semibold text-gray-700">Progress</h5>
+            <span className={`text-xs font-medium ${getStatusColor(issue.progress)}`}>
+              {getStatusText(issue.progress)}
+            </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-3">
+          <div className="w-full bg-gray-200 rounded-full h-1.5 mb-0.5">
             <div 
-              className="bg-blue-600 h-3 rounded-full transition-all duration-500" 
+              className="h-1.5 rounded-full bg-blue-600 transition-all duration-300"
               style={{ width: `${issue.progress || 0}%` }}
             />
           </div>
-          
-          {/* Status Text */}
-          <div className="flex items-center mt-3">
-            <span className={`w-3 h-3 rounded-full mr-2 ${getStatusColor(issue.progress)}`}></span>
-            <span className="text-sm text-gray-600 font-medium">{getStatusText(issue.progress)}</span>
+          <div className="text-right">
+            <span className="text-xs font-medium text-gray-500">
+              {issue.progress || 0}%
+            </span>
           </div>
         </div>
 
-        {/* Additional Actions */}
-        <div className="flex gap-3 pt-4 border-t">
-          <button className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors">
-            Follow Updates
+        {/* Actions */}
+        <div className="flex space-x-2 mt-2">
+          <button
+            className="flex-1 py-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded transition-colors"
+            onClick={() => {}}
+          >
+            Upvote
           </button>
-          <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-50 transition-colors">
-            Report Similar
+          <button
+            className="flex-1 py-1.5 px-3 border border-gray-300 text-gray-700 text-xs font-medium rounded hover:bg-gray-50 transition-colors"
+            onClick={() => {}}
+          >
+            Share
           </button>
         </div>
       </div>
     </div>
   );
-};
-
+}
 // Helper function to get status text based on progress
 const getStatusText = (progress = 0) => {
   if (progress === 0) return 'Reported';
