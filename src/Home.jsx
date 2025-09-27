@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import './App.css'
 import Navbar from './components/Navbar'
+import Sidebar from './components/Sidebar'
 import LocationButton from './components/LocationButton'
 import ReportIssueButton from './components/ReportIssueButton'
 import IssueBottomSheet from './components/IssueBottomSheet'
@@ -744,12 +745,21 @@ function MapView({ onMapReady, onLocationClick }) {
 }
 
 export default function Home() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [nearby] = useState(mockNearby)
   const [map, setMap] = useState(null)
   const [bottomSheetOpen, setBottomSheetOpen] = useState(false)
   const [dragData, setDragData] = useState({ progress: 1, offset: 0, closedOffset: 0 })
   const [selectedIssue, setSelectedIssue] = useState(null)
   const [showIssueDetail, setShowIssueDetail] = useState(false)
+  
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen)
+  }
+  
+  const closeSidebar = () => {
+    setIsSidebarOpen(false)
+  }
 
   const handleMapReady = (mapInstance) => {
     setMap(mapInstance)
@@ -820,7 +830,8 @@ export default function Home() {
 
   return (
     <div className="app-root min-h-screen bg-gray-50">
-      <Navbar />
+      <Navbar onMenuClick={toggleSidebar} />
+      <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
       <header className="map-header pt-16">
         <div className="map-wrap tall">
           <MapView onMapReady={handleMapReady} onLocationClick={handleLocationClick} />
