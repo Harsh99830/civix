@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import './App.css'
 import Navbar from './components/Navbar'
 import Sidebar from './components/Sidebar'
+import CategoryFilter from './components/CategoryFilter'
 import LocationButton from './components/LocationButton'
 import ReportIssueButton from './components/ReportIssueButton'
 import IssueBottomSheet from './components/IssueBottomSheet'
@@ -752,6 +753,7 @@ export default function Home() {
   const [dragData, setDragData] = useState({ progress: 1, offset: 0, closedOffset: 0 })
   const [selectedIssue, setSelectedIssue] = useState(null)
   const [showIssueDetail, setShowIssueDetail] = useState(false)
+  const [activeCategory, setActiveCategory] = useState('all')
   
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen)
@@ -777,6 +779,13 @@ export default function Home() {
   const handleCloseIssueDetail = () => {
     setShowIssueDetail(false)
     setSelectedIssue(null)
+  }
+
+  const handleCategorySelect = (categoryId) => {
+    setActiveCategory(categoryId);
+    // Here you would typically filter the issues based on the selected category
+    console.log('Selected category:', categoryId);
+    // In a real app, you would filter the issues here and update the state
   }
 
   const handleLocationClick = (location) => {
@@ -832,6 +841,10 @@ export default function Home() {
     <div className="app-root min-h-screen bg-gray-50">
       <Navbar onMenuClick={toggleSidebar} />
       <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
+      <CategoryFilter 
+        activeCategory={activeCategory} 
+        onSelectCategory={handleCategorySelect} 
+      />
       <header className="map-header pt-16">
         <div className="map-wrap tall">
           <MapView onMapReady={handleMapReady} onLocationClick={handleLocationClick} />
